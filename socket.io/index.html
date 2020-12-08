@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.staticfile.org/jquery/3.5.1/jquery.js"></script>
+    <script src="https://cdn.staticfile.org/socket.io/3.0.3/socket.io.js"></script>
+    <title>Title</title>
+</head>
+<body>
+hello
+<input type="text" id="input">
+<button type="button" id="btn">发送</button>
+<script>
+    var socket = io()
+
+    $('#btn').on('click',function () {
+        var value = $('#input').val()
+        socket.emit('inputEvent',value)
+        $('#input').val('')
+    })
+    // socket.on('message',function (msg) {
+    //     console.log(msg)
+    // })
+    //多个标签页打开，用户1发送的数据，其他用户都能接受到
+    socket.on('serverMsg',function (msg) {
+        console.log(msg)
+    })
+</script>
+</body>
+</html>

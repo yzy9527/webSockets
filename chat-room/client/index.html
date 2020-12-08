@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.12/vue.js"></script>
+    <script src="https://cdn.staticfile.org/socket.io/3.0.3/socket.io.js"></script>
+    <title>Title</title>
+</head>
+<body>
+<div id="app">
+    <div v-if="isShow">
+        <label for="">请输入昵称：</label>
+        <input type="text" v-model="name">
+        <button type="button" @click="enter">进入聊天室</button>
+    </div>
+    <div v-else>
+        <ul>
+            <li v-for="(item,index) in lists" :key="index">
+                {{item}}
+            </li>
+        </ul>
+        <div class="main">
+            <input type="text" v-model="message">
+            <button type="button" @click="send">发送</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: '',
+            lists: [],
+            name: '',
+            isShow: true
+        },
+        mounted() {
+            this.ws = new WebSocket('ws://127.0.0.1:9527')
+            this.ws.onOpen = this.onOpen
+            this.ws.onmessage = this.onMessage
+            this.ws.onclose = this.onClose
+            this.ws.onerror = this.onError
+        },
+        methods: {
+            enter() {
+                if (this.name.trim() === '') {
+                    alert('用户名不得为空！')
+                    return
+                }
+                this.isShow = false
+                let userInfoObj = {
+                    event: 'enter',
+                    message: this.name
+                }
+                // 不能直接发送对象
+                this.ws.send(JSON.stringify(userInfoObj))
+            },
+            onOpen() {
+                console.log('open', this.ws.readyState)
+                // ws.send('hello, im client')
+            },
+            onMessage(event) {
+                console.log(event.data)
+                // 对要数据进行转化,
+                // 接受服务端的消息
+                var obj = JSON.parse(event.data)
+                if (obj.event === 'enter') {
+                    // 新用户第一次进入
+                    this.lists.push('欢迎：' + obj.message + '加入聊天室')
+                }else{
+                    // 接受聊天消息
+                    this.lists.push(obj.message)
+                }
+            },
+            onClose() {
+                console.log('close', this.ws.readyState)
+                console.log('连接关闭')
+            },
+            onError() {
+                console.log('连接错误', this.ws.readyState)
+            },
+            send() {
+                this.lists.push(this.message)
+                this.ws.send(JSON.stringify({
+                    event: 'message',
+                    message: this.message
+                }))
+                this.message = ''
+            }
+        },
+    })
+
+</script>
+</body>
+</html>
