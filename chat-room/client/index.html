@@ -9,8 +9,15 @@
 <body>
 <div id="app">
     <div v-if="isShow">
-        <label for="">请输入昵称：</label>
-        <input type="text" v-model="name">
+        <label>
+            请输入昵称：
+            <input type="text" v-model="name">
+        </label>
+        <br>
+        <label>
+            请输入房间号：
+            <input type="text" v-model="roomid">
+        </label>
         <button type="button" @click="enter">进入聊天室</button>
     </div>
     <div v-else>
@@ -36,7 +43,8 @@
             lists: [],
             name: '',
             isShow: true,
-            num:0
+            num: 0, //在线人数
+            roomid: ''
         },
         mounted() {
             this.ws = new WebSocket('ws://127.0.0.1:9527')
@@ -54,7 +62,8 @@
                 this.isShow = false
                 let userInfoObj = {
                     event: 'enter',
-                    message: this.name
+                    message: this.name,
+                    roomid: this.roomid
                 }
                 // 不能直接发送对象
                 this.ws.send(JSON.stringify(userInfoObj))
@@ -66,7 +75,7 @@
             onMessage(event) {
                 console.log(event.data)
                 //如果用户没进入聊天室，不接受消息
-                if(this.isShow){
+                if (this.isShow) {
                     return
                 }
                 // 对要数据进行转化,
@@ -75,12 +84,12 @@
                 if (obj.event === 'enter') {
                     // 新用户第一次进入
                     this.lists.push('欢迎：' + obj.message + '加入聊天室')
-                }else if(obj.event === 'out'){
-                    this.lists.push(obj.name+'已经退出了聊天室！')
-                } else{
-                    if(obj.name !== this.name){
+                } else if (obj.event === 'out') {
+                    this.lists.push(obj.name + '已经退出了聊天室！')
+                } else {
+                    if (obj.name !== this.name) {
                         // 接受聊天消息
-                        this.lists.push(obj.name+'：'+obj.message)
+                        this.lists.push(obj.name + '：' + obj.message)
                     }
                 }
                 this.num = obj.num
@@ -93,7 +102,7 @@
                 console.log('连接错误', this.ws.readyState)
             },
             send() {
-                this.lists.push(this.name+'：'+this.message)
+                this.lists.push(this.name + '：' + this.message)
                 this.ws.send(JSON.stringify({
                     event: 'message',
                     message: this.message
