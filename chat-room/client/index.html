@@ -14,6 +14,7 @@
         <button type="button" @click="enter">进入聊天室</button>
     </div>
     <div v-else>
+        当前在线人数：{{this.num}}
         <ul>
             <li v-for="(item,index) in lists" :key="index">
                 {{item}}
@@ -34,7 +35,8 @@
             message: '',
             lists: [],
             name: '',
-            isShow: true
+            isShow: true,
+            num:0
         },
         mounted() {
             this.ws = new WebSocket('ws://127.0.0.1:9527')
@@ -63,16 +65,25 @@
             },
             onMessage(event) {
                 console.log(event.data)
+                //如果用户没进入聊天室，不接受消息
+                if(this.isShow){
+                    return
+                }
                 // 对要数据进行转化,
                 // 接受服务端的消息
                 var obj = JSON.parse(event.data)
                 if (obj.event === 'enter') {
                     // 新用户第一次进入
                     this.lists.push('欢迎：' + obj.message + '加入聊天室')
-                }else{
-                    // 接受聊天消息
-                    this.lists.push(obj.message)
+                }else if(obj.event === 'out'){
+                    this.lists.push(obj.name+'已经退出了聊天室！')
+                } else{
+                    if(obj.name !== this.name){
+                        // 接受聊天消息
+                        this.lists.push(obj.name+'：'+obj.message)
+                    }
                 }
+                this.num = obj.num
             },
             onClose() {
                 console.log('close', this.ws.readyState)
@@ -82,7 +93,7 @@
                 console.log('连接错误', this.ws.readyState)
             },
             send() {
-                this.lists.push(this.message)
+                this.lists.push(this.name+'：'+this.message)
                 this.ws.send(JSON.stringify({
                     event: 'message',
                     message: this.message
