@@ -97,7 +97,6 @@ server.on('upgrade', function upgrade(request, socket, head) {
 });
 
 setInterval(_ => {
-    console.log('fff')
     wss.clients.forEach(ws => {
         if (!ws.isAlive) {
             // 房间连接数减一

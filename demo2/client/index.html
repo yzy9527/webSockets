@@ -113,7 +113,6 @@
                         break
                     case 'heartbeat':
                         this.checkServer()
-                        console.log('gett')
                         this.ws.send(JSON.stringify({
                             event: 'heartbeat',
                             message: 'pong'
@@ -149,11 +148,9 @@
                 this.message = ''
             },
             checkServer() {
-                console.log('检查')
                 //检查服务器是否连接超时
                 clearTimeout(this.handle)
                 this.handle = setTimeout(_ => {
-                    console.log(this,'kk')
                     //如果客户端等待的时间 > 响应时间加上下次发送信息的间隔（通常为网络请求消耗的时间）,就认定为超时
                     this.onClose()
                     this.init()
