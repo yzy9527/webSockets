@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.12/vue.js"></script>
+    <script src="https://cdn.staticfile.org/socket.io/3.0.3/socket.io.js"></script>
+    <title>Title</title>
+</head>
+<body>
+<div id="app">
+    <div v-if="isShow">
+        <label>
+            请输入昵称：
+            <input type="text" v-model="name">
+        </label>
+        <br>
+        <label>
+            请输入房间号：
+            <input type="text" v-model="roomid">
+        </label>
+        <button type="button" @click="enter">进入聊天室</button>
+    </div>
+    <div v-else>
+        当前在线人数：{{this.num}}
+        <ul>
+            <li v-for="(item,index) in lists" :key="index">
+                {{item}}
+            </li>
+        </ul>
+        <div class="main">
+            <input type="text" v-model="message">
+            <button type="button" @click="send">发送</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: '',
+            lists: [],
+            name: '',
+            isShow: true,
+            num: 0, //在线人数
+            roomid: '',
+            handle: {}
+        },
+        mounted() {
+
+        },
+        methods: {
+            init() {
+                //在浏览器中引用websock库，会去调用http中的websock对象，是不能传递header对象
+                this.ws = new WebSocket('ws://127.0.0.1:9527')
+                this.ws.onopen = this.onOpen
+                this.ws.onmessage = this.onMessage
+                this.ws.onclose = this.onClose
+                this.ws.onerror = this.onError
+            },
+            enter() {
+                if (this.name.trim() === '') {
+                    alert('用户名不得为空！')
+                    return
+                }
+                //用户进入后建立连接
+                this.init()
+                this.isShow = false
+
+            },
+            onOpen() {
+
+                // console.log('open', this.ws.readyState)
+                // ws.send('hello, im client')
+                // 发起鉴权请求
+                this.ws.send(JSON.stringify({
+                    event: 'auth',
+                    message: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ey' +
+                        'JzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6Inlpbmd6eSIs' +
+                        'ImlhdCI6MTUxNjIzOTAyMn0.DavswN_bjglMyHEd3LoHMyH1-H2rodtRPqio12xfrlk'
+                }))
+                let userInfoObj = {
+                    event: 'enter',
+                    message: this.name,
+                    roomid: this.roomid
+                }
+                // 不能直接发送对象
+                //建立连接之后告诉用户进入到哪个房间
+                this.ws.send(JSON.stringify(userInfoObj))
+
+            },
+            onMessage(event) {
+                console.log(event.data)
+                //如果用户没进入聊天室，不接受消息
+                if (this.isShow) {
+                    return
+                }
+                // 对要数据进行转化,
+                // 接受服务端的消息
+                var obj = JSON.parse(event.data)
+                switch (obj.event) {
+                    case 'noauth':
+                        //鉴权失败
+                        // 路由跳转到login 重新获取token
+                        break
+                    case 'enter':
+                        // 新用户第一次进入
+                        this.lists.push('欢迎：' + obj.message + '加入聊天室')
+                        break
+                    case 'out':
+                        this.lists.push(obj.name + '已经退出了聊天室！')
+                        break
+                    case 'heartbeat':
+                        this.checkServer()
+                        console.log('gett')
+                        this.ws.send(JSON.stringify({
+                            event: 'heartbeat',
+                            message: 'pong'
+                        }))
+                        break
+                    default:
+                        if (obj.name !== this.name) {
+                            // 接受聊天消息
+                            this.lists.push(obj.name + '：' + obj.message)
+                        }
+
+                }
+                this.num = obj.num
+            },
+            onClose() {
+                console.log('close', this.ws.readyState)
+                console.log('连接关闭')
+                this.ws.close()
+            },
+            onError() {
+                console.log('连接错误', this.ws.readyState)
+                // 1s后进行断线重连
+                setTimeout(_ => {
+                    this.init()
+                }, 1000)
+            },
+            send() {
+                this.lists.push(this.name + '：' + this.message)
+                this.ws.send(JSON.stringify({
+                    event: 'message',
+                    message: this.message
+                }))
+                this.message = ''
+            },
+            checkServer() {
+                console.log('检查')
+                //检查服务器是否连接超时
+                clearTimeout(this.handle)
+                this.handle = setTimeout(_ => {
+                    console.log(this,'kk')
+                    //如果客户端等待的时间 > 响应时间加上下次发送信息的间隔（通常为网络请求消耗的时间）,就认定为超时
+                    this.onClose()
+                    this.init()
+                    //timeInterval + 时延
+                }, 1000 + 500)
+            }
+
+        },
+    })
+
+</script>
+</body>
+</html>
