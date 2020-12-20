@@ -98,9 +98,10 @@ server.on('upgrade', function upgrade(request, socket, head) {
 
 setInterval(_ => {
     wss.clients.forEach(ws => {
-        if (!ws.isAlive) {
+        if (!ws.isAlive &&ws.roomid) {
             // 房间连接数减一
             group[ws.roomid]--
+            delete ws[roomid]
             //关闭连接
             return ws.terminate()
         }
